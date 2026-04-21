@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Turbopack vide = désactive l'erreur de conflit, webpack reste actif
-  turbopack: {},
   webpack: (config, { isServer }) => {
     if (isServer) {
       // pdfkit charge ses polices (.afm) via des chemins relatifs
