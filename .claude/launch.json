@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "CABRH — Serveur de développement Next.js",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/elhadj/Desktop/Claude Code /SAAS/node_modules/.bin/next", "dev", "--webpack"],
+      "port": 3000,
+      "autoPort": false,
+      "cwd": "/Users/elhadj/Desktop/Claude Code /SAAS"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cabrh-sky: #009ADE;
+  --cabrh-navy: #004D71;
+  --cabrh-sky-light: #E6F5FB;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #1a1a2e;
+}
+
+/* Animation pour le drag & drop */
+@keyframes pulse-border {
+  0%, 100% { border-color: #009ADE; }
+  50% { border-color: #004D71; }
+}
+
+.drop-active {
+  animation: pulse-border 1s ease-in-out infinite;
+}
+
+/* Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Transition fluide des sections */
+.section-enter {
+  animation: fadeSlideIn 0.4s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #009ADE;
+  border-radius: 3px;
+}

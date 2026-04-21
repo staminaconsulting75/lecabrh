@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(export PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\")",
+      "Bash(npm --version)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/elhadj/.nvm/versions/**)",
+      "Read(//usr/local/**)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(/usr/local/bin/node node_modules/.bin/next dev --help)",
+      "Bash(timeout 15 /usr/local/bin/node node_modules/.bin/next dev --webpack --port 3000)",
+      "Bash(/usr/local/bin/node node_modules/.bin/next build)",
+      "Bash(kill 61526)",
+      "Bash(kill 61496)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(grep -v grep echo \"---\" ps aux)",
+      "Bash(/usr/local/bin/node node_modules/.bin/next dev --webpack --port 3000)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(pkill -f \"next\")",
+      "Bash(CI=1 NEXT_TELEMETRY_DISABLED=1 /usr/local/bin/node node_modules/.bin/next build)",
+      "Bash(pkill -f \"node.*3000\")",
+      "Bash(awk '{print $1, $2, $3, $10, $11, $12}')",
+      "Bash(/usr/local/bin/node node_modules/.bin/tsc --noEmit)",
+      "Bash(/usr/local/bin/node /usr/local/bin/npm install pdfkit @types/pdfkit)",
+      "Bash(CI=true NEXT_TELEMETRY_DISABLED=1 /usr/local/bin/node node_modules/.bin/next build --experimental-build-mode=compile)",
+      "Bash(echo \"Build lancé en arrière-plan PID: $!\")",
+      "Bash(grep -l \"generateCompteRenduDocx\\\\|generateDocx\\\\|generateWordDoc\" \"/Users/elhadj/Desktop/Claude Code /SAAS/src/lib/\"*)",
+      "Bash(node -e ':*)",
+      "Bash(cp \"/Users/elhadj/Desktop/convention-de-recrutement-le-cabrh-type.docx\" \"/Users/elhadj/Desktop/Claude Code /SAAS/public/templates/convention-cabrh-template.docx\")",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(cp \"/Users/elhadj/Downloads/Convention_Technicien_de_Maintenance.pdf\" \"/tmp/convention_ref.pdf\")",
+      "Read(//tmp/**)",
+      "Bash(lsof -ti:3000)",
+      "Bash(echo \"port3000_status:$?\")",
+      "Bash(xargs kill *)"
+    ]
+  }
+}
