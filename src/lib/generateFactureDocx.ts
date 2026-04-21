@@ -10,318 +10,313 @@ import {
   BorderStyle,
   AlignmentType,
   ShadingType,
-  HeadingLevel,
-  UnderlineType,
 } from "docx";
 import type { FactureData } from "./generateFacturePdf";
 
-export async function generateFactureDocxBuffer(data: FactureData): Promise<Buffer> {
-  const navyHex = "004D71";
-  const blueHex = "009ADE";
-  const grayHex = "666666";
-  const lightGrayHex = "F5F5F5";
-  const whiteHex = "FFFFFF";
+const NAVY = "004D71";
+const BLUE = "009ADE";
+const GRAY = "666666";
+const DARK = "1A1A1A";
+const WHITE = "FFFFFF";
+const LIGHT = "F5F5F5";
 
+const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+const noBorders = { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER, insideH: NO_BORDER as any, insideV: NO_BORDER as any };
+
+export async function generateFactureDocxBuffer(data: FactureData): Promise<Buffer> {
   const prix = data.prixUnitaireHT || 0;
   const tvaAmount = data.tva ? prix * 0.2 : 0;
   const totalTTC = prix + tvaAmount;
-
-  const formatEur = (n: number) =>
-    n.toLocaleString("fr-FR", { minimumFractionDigits: 2 }) + " €";
-
+  const formatEur = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 }) + " €";
   const designation = `Finalisation avec ${data.designationPrenom || ""} ${data.designationNom || ""}`.trim();
 
-  // Helper pour cellule header tableau
-  const headerCell = (text: string, align: typeof AlignmentType[keyof typeof AlignmentType] = AlignmentType.LEFT) =>
-    new TableCell({
-      shading: { type: ShadingType.SOLID, color: navyHex },
+  // ── Séparateur bleu (bottom) ──
+  const blueSeparatorBottom = (before: number, after: number) =>
+    new Paragraph({
+      border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: BLUE } },
+      spacing: { before, after },
+      children: [],
+    });
+
+  // ── Séparateur gris clair (bottom) ──
+  const graySeparator = () =>
+    new Paragraph({
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "DDDDDD" } },
+      spacing: { before: 160, after: 160 },
+      children: [],
+    });
+
+  // ── En-tête : CabRH gauche + Client droite ──
+  const headerTable = new Table({
+    width: { size: 5000, type: WidthType.PERCENTAGE },
+    borders: noBorders,
+    rows: [
+      new TableRow({
+        children: [
+          // Colonne CabRH
+          new TableCell({
+            width: { size: 2500, type: WidthType.PERCENTAGE },
+            borders: noBorders,
+            children: [
+              new Paragraph({ children: [new TextRun({ text: "LE CABRH", bold: true, color: NAVY, size: 22 })] }),
+              new Paragraph({ children: [new TextRun({ text: "15 All. Duguay Trouin", size: 16 })] }),
+              new Paragraph({ children: [new TextRun({ text: "44000 - Nantes", size: 16 })] }),
+              new Paragraph({ children: [new TextRun({ text: "nantes@le-cabrh.fr", size: 16, color: BLUE })] }),
+              new Paragraph({ children: [new TextRun({ text: "Siret : 889 224 622 00017", size: 16 })] }),
+              new Paragraph({ children: [new TextRun({ text: "Code APE : 7022Z", size: 16 })] }),
+              new Paragraph({ children: [new TextRun({ text: "TVA intracommunautaire : FR54889224622", size: 16 })] }),
+            ],
+          }),
+          // Colonne Client
+          new TableCell({
+            width: { size: 2500, type: WidthType.PERCENTAGE },
+            borders: noBorders,
+            children: [
+              new Paragraph({ children: [new TextRun({ text: "CLIENT", bold: true, color: NAVY, size: 18 })] }),
+              new Paragraph({ children: [new TextRun({ text: data.nomClient || "—", bold: true })] }),
+              new Paragraph({ children: [new TextRun({ text: data.adresseClient || "—", size: 18 })] }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+
+  // ── Tableau détails (N° Facture, Date, N° Client, Référent) ──
+  const detailsTable = new Table({
+    width: { size: 5000, type: WidthType.PERCENTAGE },
+    borders: noBorders,
+    rows: [
+      new TableRow({
+        children: [
+          { label: "N° Facture", value: data.numeroFacture || "—" },
+          { label: "Date", value: data.dateFacturation || "—" },
+          { label: "N° Client", value: data.numeroClient || "—" },
+          { label: "Référent", value: data.referent || "—" },
+        ].map(({ label, value }) =>
+          new TableCell({
+            borders: noBorders,
+            margins: { top: 0, bottom: 0, left: 10, right: 10 },
+            children: [
+              new Paragraph({ children: [new TextRun({ text: label, color: GRAY, size: 16 })] }),
+              new Paragraph({ children: [new TextRun({ text: value, bold: true, size: 18 })] }),
+            ],
+          })
+        ),
+      }),
+    ],
+  });
+
+  // ── Tableau prestations ──
+  const prestationsTable = new Table({
+    width: { size: 5000, type: WidthType.PERCENTAGE },
+    borders: ({
+      top: { style: BorderStyle.SINGLE, size: 4, color: "auto" },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: "auto" },
+      left: { style: BorderStyle.SINGLE, size: 4, color: "auto" },
+      right: { style: BorderStyle.SINGLE, size: 4, color: "auto" },
+      insideH: { style: BorderStyle.SINGLE, size: 4, color: "auto" },
+      insideV: { style: BorderStyle.SINGLE, size: 4, color: "auto" },
+    }) as any,
+    rows: [
+      // Header
+      new TableRow({
+        tableHeader: true,
+        children: [
+          { text: "Désignation", align: AlignmentType.LEFT },
+          { text: "Qté", align: AlignmentType.CENTER },
+          { text: "Prix unitaire HT", align: AlignmentType.RIGHT },
+          { text: "Total HT", align: AlignmentType.RIGHT },
+        ].map(({ text, align }) =>
+          new TableCell({
+            shading: { type: ShadingType.SOLID, color: NAVY },
+            margins: { top: 80, bottom: 80, left: 100, right: 100 },
+            children: [
+              new Paragraph({
+                alignment: align,
+                children: [new TextRun({ text, bold: true, color: WHITE, size: 18 })],
+              }),
+            ],
+          })
+        ),
+      }),
+      // Data
+      new TableRow({
+        children: [
+          { text: designation || "—", align: AlignmentType.LEFT },
+          { text: "1", align: AlignmentType.CENTER },
+          { text: formatEur(prix), align: AlignmentType.RIGHT },
+          { text: formatEur(prix), align: AlignmentType.RIGHT },
+        ].map(({ text, align }) =>
+          new TableCell({
+            shading: { type: ShadingType.SOLID, color: LIGHT },
+            margins: { top: 80, bottom: 80, left: 100, right: 100 },
+            children: [
+              new Paragraph({
+                alignment: align,
+                children: [new TextRun({ text, color: DARK })],
+              }),
+            ],
+          })
+        ),
+      }),
+    ],
+  });
+
+  // ── Tableau totaux (aligné à droite via table wrapper) ──
+  const innerTotauxRows = [
+    { label: data.tva ? "Total HT" : "Total HT", value: formatEur(prix), navy: false },
+    { label: data.tva ? "TVA 20%" : "TVA", value: data.tva ? formatEur(tvaAmount) : "Non applicable", navy: false },
+    { label: "Total TTC", value: formatEur(totalTTC), navy: true },
+  ].map(({ label, value, navy }) =>
+    new TableRow({
       children: [
-        new Paragraph({
-          alignment: align,
+        new TableCell({
+          shading: navy ? { type: ShadingType.SOLID, color: NAVY } : undefined,
+          borders: noBorders,
+          margins: { top: navy ? 80 : 60, bottom: navy ? 80 : 60, left: navy ? 100 : 80, right: navy ? 100 : 80 },
           children: [
-            new TextRun({ text, bold: true, color: whiteHex, size: 18 }),
+            new Paragraph({
+              children: [new TextRun({ text: label, bold: navy, color: navy ? WHITE : GRAY, size: navy ? 22 : 18 })],
+            }),
+          ],
+        }),
+        new TableCell({
+          shading: navy ? { type: ShadingType.SOLID, color: NAVY } : undefined,
+          borders: noBorders,
+          margins: { top: navy ? 80 : 60, bottom: navy ? 80 : 60, left: navy ? 100 : 80, right: navy ? 100 : 80 },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              children: [new TextRun({ text: value, bold: navy, color: navy ? WHITE : DARK, size: navy ? 22 : 18 })],
+            }),
           ],
         }),
       ],
-      margins: { top: 80, bottom: 80, left: 100, right: 100 },
-    });
+    })
+  );
 
-  // Helper pour cellule data
-  const dataCell = (text: string, align: typeof AlignmentType[keyof typeof AlignmentType] = AlignmentType.LEFT, bold = false) =>
-    new TableCell({
-      shading: { type: ShadingType.SOLID, color: lightGrayHex },
-      children: [
-        new Paragraph({
-          alignment: align,
-          children: [
-            new TextRun({ text, bold, size: 20, color: "1A1A1A" }),
-          ],
-        }),
-      ],
-      margins: { top: 80, bottom: 80, left: 100, right: 100 },
-    });
-
-  // Helper pour cellule totaux
-  const totalLabelCell = (text: string) =>
-    new TableCell({
-      borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-      children: [
-        new Paragraph({
-          children: [new TextRun({ text, size: 18, color: grayHex })],
-        }),
-      ],
-      margins: { top: 60, bottom: 60, left: 80, right: 80 },
-    });
-
-  const totalValueCell = (text: string) =>
-    new TableCell({
-      borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-      children: [
-        new Paragraph({
-          alignment: AlignmentType.RIGHT,
-          children: [new TextRun({ text, size: 18, color: "1A1A1A" })],
-        }),
-      ],
-      margins: { top: 60, bottom: 60, left: 80, right: 80 },
-    });
+  // Table wrapper: colonne vide à gauche + totaux à droite
+  const totauxWrapper = new Table({
+    width: { size: 5000, type: WidthType.PERCENTAGE },
+    borders: noBorders,
+    rows: [
+      new TableRow({
+        children: [
+          // Colonne vide (spacer gauche)
+          new TableCell({
+            width: { size: 2500, type: WidthType.PERCENTAGE },
+            borders: noBorders,
+            children: [new Paragraph({ children: [] })],
+          }),
+          // Colonne totaux
+          new TableCell({
+            width: { size: 2500, type: WidthType.PERCENTAGE },
+            borders: noBorders,
+            children: [
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: noBorders,
+                rows: innerTotauxRows,
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
 
   const doc = new Document({
     sections: [
       {
         properties: {
           page: {
+            size: { width: 11906, height: 16838 },
             margin: { top: 720, bottom: 860, left: 800, right: 800 },
           },
         },
         children: [
-          // ── EN-TÊTE CabRH (2 colonnes) ──
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE },
-              right: { style: BorderStyle.NONE },
-            },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    width: { size: 50, type: WidthType.PERCENTAGE },
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [
-                      new Paragraph({ children: [new TextRun({ text: "LE CABRH", bold: true, size: 22, color: navyHex })] }),
-                      new Paragraph({ children: [new TextRun({ text: "15 All. Duguay Trouin", size: 16 })] }),
-                      new Paragraph({ children: [new TextRun({ text: "44000 - Nantes", size: 16 })] }),
-                      new Paragraph({ children: [new TextRun({ text: "nantes@le-cabrh.fr", size: 16, color: blueHex })] }),
-                      new Paragraph({ children: [new TextRun({ text: "Siret : 889 224 622 00017", size: 16 })] }),
-                      new Paragraph({ children: [new TextRun({ text: "Code APE : 7022Z", size: 16 })] }),
-                      new Paragraph({ children: [new TextRun({ text: "TVA intracommunautaire : FR54889224622", size: 16 })] }),
-                    ],
-                  }),
-                  new TableCell({
-                    width: { size: 50, type: WidthType.PERCENTAGE },
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [
-                      new Paragraph({ children: [new TextRun({ text: "CLIENT", bold: true, size: 18, color: navyHex })] }),
-                      new Paragraph({ children: [new TextRun({ text: data.nomClient || "—", bold: true, size: 20 })] }),
-                      new Paragraph({ children: [new TextRun({ text: data.adresseClient || "—", size: 18 })] }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
+          // 1. Header CabRH + Client
+          headerTable,
 
-          // Séparateur
-          new Paragraph({
-            border: { bottom: { style: BorderStyle.SINGLE, color: blueHex, size: 12 } },
-            children: [],
-            spacing: { before: 300, after: 100 },
-          }),
+          // 2. Séparateur bleu
+          blueSeparatorBottom(300, 100),
 
-          // ── TITRE FACTURE ──
+          // 3. Titre FACTURE
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { before: 100, after: 100 },
-            children: [
-              new TextRun({ text: "FACTURE", bold: true, size: 40, color: navyHex }),
-            ],
+            children: [new TextRun({ text: "FACTURE", bold: true, color: NAVY, size: 40 })],
           }),
 
-          // Séparateur
+          // 4. Séparateur bleu
+          blueSeparatorBottom(100, 200),
+
+          // 5. Détails (N° Facture, Date, N° Client, Référent)
+          detailsTable,
+
+          // 6. Séparateur gris
+          graySeparator(),
+
+          // 7. Intitulé
           new Paragraph({
-            border: { bottom: { style: BorderStyle.SINGLE, color: blueHex, size: 12 } },
-            children: [],
-            spacing: { before: 100, after: 200 },
+            children: [new TextRun({ text: "Intitulé de la mission", color: GRAY, size: 16 })],
           }),
-
-          // ── DÉTAILS (4 colonnes) ──
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: {
-              top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
-            },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [
-                      new Paragraph({ children: [new TextRun({ text: "N° Facture", size: 16, color: grayHex })] }),
-                      new Paragraph({ children: [new TextRun({ text: data.numeroFacture || "—", bold: true, size: 18 })] }),
-                    ],
-                  }),
-                  new TableCell({
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [
-                      new Paragraph({ children: [new TextRun({ text: "Date", size: 16, color: grayHex })] }),
-                      new Paragraph({ children: [new TextRun({ text: data.dateFacturation || "—", bold: true, size: 18 })] }),
-                    ],
-                  }),
-                  new TableCell({
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [
-                      new Paragraph({ children: [new TextRun({ text: "N° Client", size: 16, color: grayHex })] }),
-                      new Paragraph({ children: [new TextRun({ text: data.numeroClient || "—", bold: true, size: 18 })] }),
-                    ],
-                  }),
-                  new TableCell({
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [
-                      new Paragraph({ children: [new TextRun({ text: "Référent", size: 16, color: grayHex })] }),
-                      new Paragraph({ children: [new TextRun({ text: data.referent || "—", bold: true, size: 18 })] }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-
-          // Séparateur léger
           new Paragraph({
-            border: { bottom: { style: BorderStyle.SINGLE, color: "DDDDDD", size: 4 } },
-            children: [],
-            spacing: { before: 160, after: 160 },
-          }),
-
-          // ── INTITULÉ ──
-          new Paragraph({ children: [new TextRun({ text: "Intitulé de la mission", size: 16, color: grayHex })] }),
-          new Paragraph({
-            children: [new TextRun({ text: data.intitule || "—", bold: true, size: 20 })],
             spacing: { after: 200 },
+            children: [new TextRun({ text: data.intitule || "—", bold: true })],
           }),
 
-          // ── TABLEAU PRESTATIONS ──
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [
-              // Header
-              new TableRow({
-                children: [
-                  headerCell("Désignation"),
-                  headerCell("Qté", AlignmentType.CENTER),
-                  headerCell("Prix unitaire HT", AlignmentType.RIGHT),
-                  headerCell("Total HT", AlignmentType.RIGHT),
-                ],
-                tableHeader: true,
-              }),
-              // Data row
-              new TableRow({
-                children: [
-                  dataCell(designation || "—"),
-                  dataCell("1", AlignmentType.CENTER),
-                  dataCell(formatEur(prix), AlignmentType.RIGHT),
-                  dataCell(formatEur(prix), AlignmentType.RIGHT),
-                ],
-              }),
-            ],
-          }),
+          // 8. Tableau prestations
+          prestationsTable,
 
-          // Espace
-          new Paragraph({ children: [], spacing: { before: 200 } }),
+          // 9. Espace
+          new Paragraph({ spacing: { before: 200 }, children: [] }),
 
-          // ── TOTAUX ──
-          new Table({
-            width: { size: 50, type: WidthType.PERCENTAGE },
-            float: { horizontalAnchor: "margin" as any, relativeHorizontalPosition: "right" as any },
-            borders: {
-              top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
-            },
-            rows: [
-              new TableRow({
-                children: [
-                  totalLabelCell("Total HT"),
-                  totalValueCell(formatEur(prix)),
-                ],
-              }),
-              new TableRow({
-                children: [
-                  totalLabelCell(data.tva ? "TVA 20%" : "TVA"),
-                  totalValueCell(data.tva ? formatEur(tvaAmount) : "Non applicable"),
-                ],
-              }),
-              new TableRow({
-                children: [
-                  new TableCell({
-                    shading: { type: ShadingType.SOLID, color: navyHex },
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [new Paragraph({ children: [new TextRun({ text: "Total TTC", bold: true, size: 22, color: whiteHex })] })],
-                    margins: { top: 80, bottom: 80, left: 100, right: 100 },
-                  }),
-                  new TableCell({
-                    shading: { type: ShadingType.SOLID, color: navyHex },
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: formatEur(totalTTC), bold: true, size: 22, color: whiteHex })] })],
-                    margins: { top: 80, bottom: 80, left: 100, right: 100 },
-                  }),
-                ],
-              }),
-            ],
-          }),
+          // 10. Totaux (alignés à droite)
+          totauxWrapper,
 
-          // espace
-          new Paragraph({ children: [], spacing: { before: 800 } }),
+          // 11. Espace
+          new Paragraph({ spacing: { before: 800 }, children: [] }),
 
-          // Mention escompte
+          // 12. Escompte
           new Paragraph({
-            children: [new TextRun({ text: "Aucun escompte consenti pour règlement anticipé.", size: 16, color: grayHex, italics: true })],
             spacing: { after: 200 },
+            children: [new TextRun({ text: "Aucun escompte consenti pour règlement anticipé.", italics: true, color: GRAY, size: 16 })],
           }),
 
-          // ── MENTIONS LÉGALES ──
+          // 13. Séparateur bleu (top)
           new Paragraph({
-            border: { top: { style: BorderStyle.SINGLE, color: blueHex, size: 8 } },
-            children: [],
+            border: { top: { style: BorderStyle.SINGLE, size: 8, color: BLUE } },
             spacing: { before: 200, after: 100 },
+            children: [],
           }),
 
+          // 14. Mentions légales
           new Paragraph({
+            alignment: AlignmentType.BOTH,
+            spacing: { after: 200 },
             children: [
               new TextRun({
                 text: "Tout incident de paiement est passible d'intérêt de retard. Le montant des pénalités résulte de l'application aux sommes restant dues d'un intérêt de 10% sur base annuelle ou un intérêt de trois fois le taux légal, le montant le plus élevé s'appliquant.",
+                color: GRAY,
                 size: 14,
-                color: grayHex,
               }),
             ],
-            alignment: AlignmentType.JUSTIFIED,
-            spacing: { after: 200 },
           }),
 
-          // ── PIED DE PAGE ──
+          // 15. Pied de page
           new Paragraph({
-            border: { top: { style: BorderStyle.SINGLE, color: blueHex, size: 8 } },
             alignment: AlignmentType.CENTER,
+            border: { top: { style: BorderStyle.SINGLE, size: 8, color: BLUE } },
+            spacing: { before: 200 },
             children: [
               new TextRun({
                 text: "LE CABRH — 15 All. Duguay Trouin, 44000 Nantes — nantes@le-cabrh.fr — TVA FR54889224622",
+                color: GRAY,
                 size: 14,
-                color: grayHex,
               }),
             ],
-            spacing: { before: 200 },
           }),
         ],
       },
