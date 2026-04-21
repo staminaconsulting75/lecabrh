@@ -32,7 +32,7 @@ export async function generateFactureDocxBuffer(data: FactureData): Promise<Buff
   const designation = `Finalisation avec ${data.designationPrenom || ""} ${data.designationNom || ""}`.trim();
 
   // Helper pour cellule header tableau
-  const headerCell = (text: string, align = AlignmentType.LEFT) =>
+  const headerCell = (text: string, align: typeof AlignmentType[keyof typeof AlignmentType] = AlignmentType.LEFT) =>
     new TableCell({
       shading: { type: ShadingType.SOLID, color: navyHex },
       children: [
@@ -47,7 +47,7 @@ export async function generateFactureDocxBuffer(data: FactureData): Promise<Buff
     });
 
   // Helper pour cellule data
-  const dataCell = (text: string, align = AlignmentType.LEFT, bold = false) =>
+  const dataCell = (text: string, align: typeof AlignmentType[keyof typeof AlignmentType] = AlignmentType.LEFT, bold = false) =>
     new TableCell({
       shading: { type: ShadingType.SOLID, color: lightGrayHex },
       children: [
@@ -102,8 +102,6 @@ export async function generateFactureDocxBuffer(data: FactureData): Promise<Buff
               bottom: { style: BorderStyle.NONE },
               left: { style: BorderStyle.NONE },
               right: { style: BorderStyle.NONE },
-              insideH: { style: BorderStyle.NONE },
-              insideV: { style: BorderStyle.NONE },
             },
             rows: [
               new TableRow({
@@ -164,7 +162,6 @@ export async function generateFactureDocxBuffer(data: FactureData): Promise<Buff
             borders: {
               top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
               left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
-              insideH: { style: BorderStyle.NONE }, insideV: { style: BorderStyle.NONE },
             },
             rows: [
               new TableRow({
@@ -252,7 +249,6 @@ export async function generateFactureDocxBuffer(data: FactureData): Promise<Buff
             borders: {
               top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
               left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
-              insideH: { style: BorderStyle.NONE }, insideV: { style: BorderStyle.NONE },
             },
             rows: [
               new TableRow({
