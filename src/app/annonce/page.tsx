@@ -715,6 +715,12 @@ export default function AnnoncePage() {
               style={{ color: "#004D71", borderColor: "#009ADE40", background: "white" }}>
               Historique
             </Link>
+            <Link
+              href="/facture"
+              className="text-xs font-medium px-4 py-2 rounded-full border transition-colors"
+              style={{ color: "#004D71", borderColor: "#009ADE40", background: "white" }}>
+              Facture
+            </Link>
           </nav>
         </div>
       </header>
